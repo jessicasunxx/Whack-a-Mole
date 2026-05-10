@@ -86,6 +86,8 @@ void setup() {
   delay(500);
   
   Serial.println("\n\n=== Whack-a-Mole Game Starting ===\n");
+  Serial.println("Display resolution: 240x135 (ST7735S driver)");
+  Serial.println("Initializing display...");
   
   // Initialize LED pins
   pinMode(LED_1, OUTPUT);
@@ -94,10 +96,28 @@ void setup() {
   pinMode(LED_4, OUTPUT);
   turnOffAllLEDs();
   
-  // Initialize TFT display
+  // Initialize TFT display with extra delay for stability
   tft.init();
+  delay(100);
   tft.setRotation(1);  // Landscape mode for TTGO T-Display
+  delay(100);
+  
+  // Fill screen with black and show it's working
   tft.fillScreen(TFT_BLACK);
+  delay(200);
+  
+  // Quick test - show all colors to verify display works
+  Serial.println("Display test: Showing color bars...");
+  tft.fillRect(0, 0, 48, 135, TFT_RED);
+  tft.fillRect(48, 0, 48, 135, TFT_GREEN);
+  tft.fillRect(96, 0, 48, 135, TFT_BLUE);
+  tft.fillRect(144, 0, 96, 135, TFT_YELLOW);
+  delay(1000);
+  
+  tft.fillScreen(TFT_BLACK);
+  delay(500);
+  
+  Serial.println("Display initialized successfully!");
   
   delay(500);
   
