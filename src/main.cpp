@@ -6,10 +6,10 @@
 // ============================================================================
 
 // Touch Pad Pins (Capacitive Touch Sensors)
-#define TOUCH_PAD_1 T0  // GPIO 4
-#define TOUCH_PAD_2 T2  // GPIO 13
-#define TOUCH_PAD_3 T5  // GPIO 12
-#define TOUCH_PAD_4 T4  // GPIO 15
+#define TOUCH_PAD_1 T2  // GPIO 2
+#define TOUCH_PAD_2 T3  // GPIO 15
+#define TOUCH_PAD_3 T4  // GPIO 13
+#define TOUCH_PAD_4 T5  // GPIO 12
 
 // LED Pins
 #define LED_1 25
@@ -17,12 +17,15 @@
 #define LED_3 27
 #define LED_4 32
 
+// TFT backlight pin for TTGO T-Display
+#define TFT_BL_PIN 4
+
 // Touch threshold value
 // CALIBRATION TIPS:
-// - If sensors are too sensitive (triggering without taps): INCREASE this value (try 80-100)
-// - If sensors are not sensitive enough: DECREASE this value (try 20-40)
-// - Read the baseline values at startup and adjust based on your copper tape size
-#define TOUCH_THRESHOLD 40
+// - If sensors are too sensitive (triggering without taps): INCREASE this value (try 50-80)
+// - If sensors are not sensitive enough: DECREASE this value (try 15-30)
+// - When using bare touch pins, a lower threshold may be needed
+#define TOUCH_THRESHOLD 25
 
 // ============================================================================
 // GAME STATE ENUM
@@ -86,8 +89,6 @@ void setup() {
   delay(500);
   
   Serial.println("\n\n=== Whack-a-Mole Game Starting ===\n");
-  Serial.println("Display resolution: 240x135 (ST7735S driver)");
-  Serial.println("Initializing display...");
   
   // Initialize LED pins
   pinMode(LED_1, OUTPUT);
@@ -96,28 +97,12 @@ void setup() {
   pinMode(LED_4, OUTPUT);
   turnOffAllLEDs();
   
-  // Initialize TFT display with extra delay for stability
+  // Initialize TFT display
   tft.init();
-  delay(100);
   tft.setRotation(1);  // Landscape mode for TTGO T-Display
-  delay(100);
-  
-  // Fill screen with black and show it's working
+  pinMode(TFT_BL_PIN, OUTPUT);
+  digitalWrite(TFT_BL_PIN, HIGH);  // Turn on display backlight for a brighter screen
   tft.fillScreen(TFT_BLACK);
-  delay(200);
-  
-  // Quick test - show all colors to verify display works
-  Serial.println("Display test: Showing color bars...");
-  tft.fillRect(0, 0, 48, 135, TFT_RED);
-  tft.fillRect(48, 0, 48, 135, TFT_GREEN);
-  tft.fillRect(96, 0, 48, 135, TFT_BLUE);
-  tft.fillRect(144, 0, 96, 135, TFT_YELLOW);
-  delay(1000);
-  
-  tft.fillScreen(TFT_BLACK);
-  delay(500);
-  
-  Serial.println("Display initialized successfully!");
   
   delay(500);
   
@@ -238,12 +223,12 @@ int getTouchedPad() {
 // Helper function to read raw touch values from specific GPIO pins
 uint32_t getTouchValue(int padIndex) {
   // Map pad index to touch channel
-  // Pad 0 -> T0 (GPIO 4)
-  // Pad 1 -> T2 (GPIO 13)
-  // Pad 2 -> T5 (GPIO 12)
-  // Pad 3 -> T4 (GPIO 15)
+  // Pad 0 -> T2 (GPIO 2)
+  // Pad 1 -> T3 (GPIO 15)
+  // Pad 2 -> T4 (GPIO 13)
+  // Pad 3 -> T5 (GPIO 12)
   
-  const int touchChannels[4] = {0, 2, 5, 4};  // Touch channel numbers
+  const int touchChannels[4] = {2, 3, 4, 5};  // Touch channel numbers
   return touchRead(touchChannels[padIndex]);
 }
 
@@ -357,17 +342,17 @@ void turnOffAllLEDs() {
 void drawStartScreen() {
   tft.fillScreen(TFT_BLACK);
   
-  // Draw title
+  // Draw title with a bright contrast color
   tft.setTextDatum(MC_DATUM);
-  tft.setTextSize(3);
-  tft.setTextColor(TFT_GREEN, TFT_BLACK);
+  tft.setTextSize(4);
+  tft.setTextColor(TFT_YELLOW, TFT_BLACK);
   tft.drawString("Whack-a-Mole", 120, 30);
   
-  // Draw instructions
-  tft.setTextSize(2);
+  // Draw instructions with bright white text
+  tft.setTextSize(3);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.drawString("Tap any pad", 120, 70);
-  tft.drawString("to start", 120, 95);
+  tft.drawString("Tap any pad", 120, 80);
+  tft.drawString("to start", 120, 110);
 }
 
 void drawGameScreen() {
@@ -380,13 +365,13 @@ void drawGameScreen() {
   
   // Draw score at top left
   tft.setTextDatum(TL_DATUM);
-  tft.setTextSize(2);
+  tft.setTextSize(3);
   tft.setTextColor(TFT_YELLOW, TFT_BLACK);
   tft.drawString("Score: " + String(score), 5, 5);
   
   // Draw remaining time at top right
   tft.setTextDatum(TR_DATUM);
-  tft.setTextSize(2);
+  tft.setTextSize(3);
   tft.setTextColor(TFT_CYAN, TFT_BLACK);
   tft.drawString(String(remainingTime) + "s", 235, 5);
   
@@ -394,7 +379,7 @@ void drawGameScreen() {
   tft.setTextDatum(MC_DATUM);
   tft.setTextSize(2);
   if (activeMole != -1) {
-    tft.setTextColor(TFT_RED, TFT_BLACK);
+    tft.setTextColor(TFT_ORANGE, TFT_BLACK);
     tft.drawString("Mole " + String(activeMole + 1) + " ACTIVE!", 120, 50);
   }
   
@@ -402,7 +387,7 @@ void drawGameScreen() {
   if (showFeedback) {
     unsigned long feedbackElapsed = currentMillis - feedbackStartTime;
     if (feedbackElapsed < FEEDBACK_DISPLAY_TIME) {
-      tft.setTextSize(3);
+      tft.setTextSize(4);
       if (feedbackText == "HIT!") {
         tft.setTextColor(TFT_GREEN, TFT_BLACK);
       } else {
@@ -432,24 +417,24 @@ void drawGameOverScreen() {
   
   // Draw game over title
   tft.setTextDatum(MC_DATUM);
-  tft.setTextSize(3);
+  tft.setTextSize(4);
   tft.setTextColor(TFT_RED, TFT_BLACK);
   tft.drawString("GAME OVER", 120, 20);
   
   // Draw final score
   tft.setTextSize(3);
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
-  tft.drawString("Final Score:", 120, 50);
+  tft.drawString("Final Score:", 120, 55);
   
-  tft.setTextSize(4);
+  tft.setTextSize(5);
   tft.setTextColor(TFT_YELLOW, TFT_BLACK);
-  tft.drawString(String(score), 120, 85);
+  tft.drawString(String(score), 120, 95);
   
   // Draw restart instructions
-  tft.setTextSize(2);
+  tft.setTextSize(3);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.drawString("Tap any pad", 120, 115);
-  tft.drawString("to restart", 120, 135);
+  tft.drawString("Tap any pad", 120, 130);
+  tft.drawString("to restart", 120, 160);
 }
 
 // ============================================================================
