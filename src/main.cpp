@@ -74,6 +74,7 @@ void turnOffAllLEDs();
 void chooseMole();
 bool checkTouchPads();
 int getTouchedPad();
+uint32_t getTouchValue(int padIndex);
 void displayFeedback(String text);
 int getGameDifficulty();
 
